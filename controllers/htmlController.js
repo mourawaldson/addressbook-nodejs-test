@@ -7,26 +7,36 @@ var con = mysql.createConnection({
     host: "localhost",
     user: "root",
     password: "",
-    database: "addressbook"
+    database: "notifications"
 });
 
 module.exports = function(app) {
 
     app.get('/', function(req, res) {
-        res.render('index');
+        var projects = [];
+        var query = con.query('SELECT * FROM projects', function(err, rows, fields) {
+            if (err) {
+                throw err;
+            } else {
+                for (var i in rows) {
+                    projects.push({name: rows[i].name});
+                }
+            }
+            res.render('index', { serverProjects: projects });
+        })
     });
 
-    app.get('/person/:id', function(req, res) {
-        res.render('person', { ID: req.params.id, Qstr: req.query.qstr });
-    });
+    app.get('/project/:id', function(req, res) {
+        res.render('project', { ID: req.params.id, Qstr: req.query.qstr });
+    })
 
-    app.post('/person', urlencodedParser, function(req, res) {
-        res.send('Thank you!');
-
-        var data  = {firstname: req.body.firstname, lastname: req.body.lastname};
-        var query = con.query('INSERT INTO people SET ?', data, function(err, result) {
-
-        });
-        console.log(query.sql);
-    });
-}
+    app.post('/project', urlencodedParser, function(req, res) {
+        var data  = {name: req.body.name};
+        var query = con.query('INSERT INTO projects SET ?', data, function(err, result) {
+            if (err) {
+                console.error(err);
+            }
+        })
+        res.redirect('/');
+    })
+};
