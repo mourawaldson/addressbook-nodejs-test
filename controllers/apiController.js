@@ -1,4 +1,7 @@
+var bodyParser = require('body-parser');
 var mysql = require('mysql');
+
+var urlencodedParser = bodyParser.urlencoded({ extended: false });
 
 var con = mysql.createConnection({
     host: "localhost",
@@ -7,21 +10,58 @@ var con = mysql.createConnection({
     database: "notifications"
 });
 
+var error = {"status": "error", "message": "missing a parameter"};
+
 module.exports = function(app) {
-    app.get('/api/project/:id', function(req, res) {
-        // get that data from database
-        res.json({ name: 'ProBiller' });
+    app.get('/api/projects/:id', function(req, res) {
+        var id = req.params.id;
+        if(!id) {
+            return res.send(error);
+        }
+        try {
+            con.query('SELECT * FROM project WHERE id = ' + con.escape(id), function (err, rows, fields) {
+                if (err) {
+                    if (err) throw err;
+                } else {
+                    if (rows.length) {
+                        res.json({id: id, name: rows[0].name});
+                    } else {
+                        res.sendStatus(404);
+                    }
+                }
+            });
+        } catch (e) {
+            res.sendStatus(404);
+        }
     });
 
-    app.post('/api/project', function(req, res) {
+    app.post('/api/projects', urlencodedParser, function(req, res) {
+        var name = req.body.name;
+        if(!name) {
+            return res.send(error);
+        }
         var data  = {name: req.body.name};
-        var query = con.query('INSERT INTO projects SET ?', data, function(err, result) {
-            if (err) throw err;
+        con.query('INSERT INTO project SET ?', data, function(err, result) {
+            if (err) {
+                res.sendStatus(404);
+            } else {
+                //res.json({id: result.insertId, name: name});
+                res.sendStatus(200);
+            }
         });
-        res.send('Thank you!');
     });
 
     app.delete('/api/project/:id', function(req, res) {
-        // delete from the database
+        var id = req.params.id;
+        if(!id) {
+            return res.send(error);
+        }
+        con.query('DELETE FROM project WHERE id = ' + con.escape(id), function(err, result) {
+            if (err) {
+                res.sendStatus(404);
+            } else {
+                res.sendStatus(200);
+            }
+        });
     });
 };
